@@ -1,0 +1,26 @@
+@'
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python environments
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Local vector database
+data/qdrant/
+'@ | Set-Content .gitignore

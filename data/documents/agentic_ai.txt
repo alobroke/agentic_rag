@@ -1,0 +1,19 @@
+# Agentic RAG
+
+Agentic RAG extends traditional Retrieval-Augmented Generation by adding an agent that can make decisions about retrieval.
+
+The agent analyzes a user's question and identifies the information required to answer it.
+
+A planner creates information requirements and search queries. A retriever gathers evidence from a knowledge base or web search.
+
+An evaluator checks whether the retrieved evidence adequately covers the requirements.
+
+If evidence is insufficient, the agent identifies missing information, generates targeted queries, and retrieves additional evidence.
+
+The process repeats until sufficient evidence is collected or a maximum retrieval limit is reached.
+
+A response generator produces the final answer using the available evidence and its source references.
+
+The main components are the planner, retriever, evidence evaluator, query refinement mechanism, and answer generator.
+
+Agentic RAG can improve coverage for complex questions, but additional retrieval rounds increase latency and inference costs.

@@ -1,0 +1,11 @@
+
+qdrant-client
+FlagEmbedding
+PyMuPDF
+rank-bm25
+langgraph
+transformers
+accelerate
+fastapi
+uvicorn
+python-dotenv

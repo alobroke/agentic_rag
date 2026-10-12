@@ -1,0 +1,15 @@
+# Retrieval-Augmented Generation (RAG)
+
+Retrieval-Augmented Generation is an AI architecture that combines information retrieval with a large language model.
+
+The RAG pipeline has three main stages: document ingestion, retrieval, and answer generation.
+
+During ingestion, documents are split into smaller chunks. An embedding model converts each chunk into a numerical vector, which is stored in a vector database.
+
+During retrieval, the user's question is converted into an embedding. The vector database searches for semantically similar chunks.
+
+The retrieved evidence is passed to the language model as context. The model uses this context to generate an answer.
+
+Advantages of RAG include access to external knowledge, easier knowledge updates, and the ability to provide source references.
+
+Limitations include retrieval errors, irrelevant context, embedding costs, and the possibility of generating unsupported claims.
