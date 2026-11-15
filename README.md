@@ -410,13 +410,3 @@ if needed.
 -   [ ] Add structured logging, tracing, retries, and rate-limit
     handling.
 
-## Contributing
-
-Issues and pull requests are welcome. For bug reports, include the
-relevant error message and reproduction steps, but remove API keys,
-tokens, and private data first.
-
-## License
-
-No license has been specified yet. Add a `LICENSE` file before
-presenting the repository as open source under a particular license.
