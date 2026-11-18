@@ -10,6 +10,7 @@ from app.config import (
     COLLECTION_NAME,
     EMBEDDING_MODEL,
     WEB_SEARCH_API_KEY,
+    LOCAL_MIN_SCORE,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,12 @@ class Retriever:
         self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
         self._closed = False
 
-    def retrieve_local(self, query: str, top_k: int = 5) -> list[dict]:
+    def retrieve_local(
+        self,
+        query: str,
+        top_k: int = 5,
+        min_score: float = LOCAL_MIN_SCORE,
+    ) -> list[dict]:
         """Retrieve relevant chunks from the local Qdrant collection."""
         if not query.strip() or top_k <= 0:
             return []
@@ -46,6 +52,16 @@ class Retriever:
             seen_text = set()
 
             for point in result.points:
+                score = float(point.score)
+
+                # Results arrive best-first, so everything after this is worse.
+                if score < min_score:
+                    logger.info(
+                        "Local results below threshold %.2f (best: %.3f)",
+                        min_score,
+                        result.points[0].score,
+                    )
+                    break
                 payload = point.payload or {}
                 text = payload.get("text", "").strip()
                 source = payload.get("source", "knowledge_base")
