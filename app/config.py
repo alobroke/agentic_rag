@@ -17,7 +17,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-
+LOCAL_MIN_SCORE = float(os.getenv("LOCAL_MIN_SCORE", "0.30"))
 # open router hosted LLM
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_MODEL = os.getenv(
