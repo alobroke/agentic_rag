@@ -11,67 +11,82 @@ class Planner:
     def __init__(self):
         self.llm = LLMClient()
 
-    def plan(self, query: str) -> dict:
+    def plan(self, query: str, chat_history: list | None = None) -> dict:
+        chat_history = chat_history or []
+
+        history_text = ""
+        for item in chat_history[-12:]:
+            if not isinstance(item, dict):
+                continue
+
+            role = item.get("role")
+            content = item.get("content")
+
+            if role in {"user", "assistant"} and isinstance(content, str):
+                history_text += f"{role}: {content}\n"
+
         messages = [
             {
                 "role": "system",
                 "content": """
 You are the planning component of an Agentic RAG chatbot.
 
+Use conversation history to understand follow-up questions.
+Rewrite the current question as a standalone question.
+Do not change its original meaning.
+
 Return ONLY one valid JSON object with these keys:
-intent, sources, requirements, search_queries.
+standalone_query, intent, sources, requirements, search_queries.
 
 Allowed values:
 - intent: chat, knowledge, research
 - sources: none, local, web, both
 
-Classification rules (follow in order):
+Classification rules:
 
 1. CHAT:
-Use intent="chat" and sources="none" ONLY for greetings,
-small talk, thanks, and simple conversational messages that
-do not ask for factual information.
+Greetings, small talk, thanks, and simple conversational
+messages that do not require factual information.
+Use intent="chat", sources="none".
 
 2. KNOWLEDGE:
-Use intent="knowledge" and sources="local" when the user asks
-about information that may be available in the local knowledge base.
+Questions about information that may exist in the local
+knowledge base. Use intent="knowledge", sources="local".
 
 3. RESEARCH:
-Use intent="research" and sources="web" when the user asks
-for current facts, recent developments, external research,
-or information that requires web sources.
+Current facts, recent developments, external research,
+or questions requiring web sources.
+Use intent="research", sources="web".
 
 4. BOTH:
-Use intent="research" and sources="both" when both local
-documents and external evidence would help answer the question.
+Use intent="research", sources="both" when local documents
+and external evidence would both help.
 
-IMPORTANT:
-- Questions starting with "what", "why", "how", "when", or
-  "compare" are not automatically chat.
-- "What is Agentic RAG?" is a factual question, NOT a greeting.
-  For this example, choose intent="research", sources="web".
-- When uncertain whether a message is factual or conversational,
-  prefer retrieval rather than silently skipping evidence.
+Important:
+- Never classify a factual question as chat.
+- Use conversation history to resolve words like it, they,
+  this, that, and similar references.
+- If history does not help, use the current question as-is.
 - For chat, requirements and search_queries must be empty.
-- For retrieval, provide at least one requirement and one
-  useful search query.
+- For retrieval, provide at least one requirement and
+  one useful search query.
+- Requirements must describe facts that evidence must support.
+- Search queries must help retrieve evidence for those requirements.
+- Return valid JSON only, without Markdown fences.
 
-Example 1:
-Input: Hi, how are you?
-Output:
-{"intent":"chat","sources":"none","requirements":[],"search_queries":[]}
-
-Example 2:
-Input: What is Agentic RAG?
-Output:
-{"intent":"research","sources":"web","requirements":["Find a reliable definition of Agentic RAG and explain how its iterative retrieval and evaluation work"],"search_queries":["Agentic RAG architecture iterative retrieval evaluation"]}
-
-Return JSON only. Do not include Markdown fences or explanations.
+Example:
+Current question: What are its limitations?
+History: User asked about RAG.
+standalone_query:
+What are the limitations of Retrieval-Augmented Generation (RAG)?
 """,
             },
             {
                 "role": "user",
-                "content": query,
+                "content": (
+                    f"Conversation history:\n{history_text}\n"
+                    f"Current question:\n{query}"
+                ),
             },
         ]
 
@@ -82,8 +97,8 @@ Return JSON only. Do not include Markdown fences or explanations.
                 temperature=0.1,
             )
 
-            # Handle JSON enclosed in Markdown fences.
             response = response.strip()
+
             if response.startswith("```"):
                 response = response.split("\n", 1)[1]
                 response = response.rsplit("```", 1)[0].strip()
@@ -99,11 +114,35 @@ Return JSON only. Do not include Markdown fences or explanations.
             if plan.get("intent") not in valid_intents:
                 raise ValueError("Invalid intent")
 
-            if not isinstance(plan.get("requirements"), list):
+            standalone_query = plan.get("standalone_query")
+            if not isinstance(standalone_query, str) or not standalone_query.strip():
+                raise ValueError("Invalid standalone query")
+
+            requirements = plan.get("requirements")
+            search_queries = plan.get("search_queries")
+
+            if not isinstance(requirements, list):
                 raise ValueError("Requirements must be a list")
 
-            if not isinstance(plan.get("search_queries"), list):
+            if not isinstance(search_queries, list):
                 raise ValueError("Search queries must be a list")
+
+            if plan["sources"] == "none":
+                requirements = []
+                search_queries = []
+
+            elif not requirements or not search_queries:
+                raise ValueError("Retrieval plan must include requirements and queries")
+
+            if not all(isinstance(x, str) and x.strip() for x in requirements):
+                raise ValueError("Invalid requirement")
+
+            if not all(isinstance(x, str) and x.strip() for x in search_queries):
+                raise ValueError("Invalid search query")
+
+            plan["standalone_query"] = standalone_query.strip()
+            plan["requirements"] = requirements
+            plan["search_queries"] = search_queries
 
             logger.info(
                 "Plan created: intent=%s, sources=%s",
@@ -118,8 +157,8 @@ Return JSON only. Do not include Markdown fences or explanations.
                 "Planning failed; using safe fallback: %s", error
             )
 
-            # Avoid silently treating a failed plan as casual chat.
             return {
+                "standalone_query": query,
                 "intent": "research",
                 "sources": "both",
                 "requirements": [

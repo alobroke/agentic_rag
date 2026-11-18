@@ -1,4 +1,10 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
+# Explicitly load app/.env
+ENV_FILE = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=ENV_FILE)
 from openai import OpenAI
 from app.config import (
     OPENROUTER_API_KEY,
