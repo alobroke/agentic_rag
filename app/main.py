@@ -1,4 +1,3 @@
-
 import logging
 from contextlib import asynccontextmanager
 
@@ -36,6 +35,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=10000)
     conversation_id: str | None = None
     chat_history: list[dict] = Field(default_factory=list)
+    debug: bool = False
 
 
 class Source(BaseModel):
@@ -49,8 +49,10 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
     status: str
+    missing: list[str] = Field(default_factory=list)
     rounds: int
     conversation_id: str | None = None
+    trace: dict | None = None
 
 
 @app.get("/")
@@ -78,8 +80,10 @@ def chat(request: ChatRequest):
             answer=result["answer"],
             sources=result.get("sources", []),
             status=result.get("status", "answered"),
+            missing=result.get("missing", []),
             rounds=result.get("rounds", 0),
             conversation_id=request.conversation_id,
+            trace=result.get("trace") if request.debug else None,
         )
 
     except Exception as error:
